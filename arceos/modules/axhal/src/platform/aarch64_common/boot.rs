@@ -101,7 +101,7 @@ unsafe fn init_boot_page_table() {
 }
 
 /// The earliest entry point for the primary CPU.
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
 unsafe extern "C" fn _start() -> ! {
@@ -143,7 +143,7 @@ unsafe extern "C" fn _start() -> ! {
 
 /// The earliest entry point for the secondary CPUs.
 #[cfg(feature = "smp")]
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
 unsafe extern "C" fn _start_secondary() -> ! {
