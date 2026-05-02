@@ -174,8 +174,10 @@ fn sys_mmap(
 
     // If file-backed, read file content into the mapped region
     if !is_anonymous && fd >= 0 {
-        let buf = vaddr.as_usize() as *mut core::ffi::c_void;
-        let ret = api::sys_read(fd, buf, length);
+        // Use kernel-accessible physical address, not user virtual address
+        let (paddr, _, _) = aspace.page_table().query(vaddr).unwrap();
+        let kbuf = axhal::mem::phys_to_virt(paddr).as_mut_ptr() as *mut core::ffi::c_void;
+        let ret = api::sys_read(fd, kbuf, length);
         ax_println!("sys_mmap: sys_read(fd={}) returned {}", fd, ret);
         if ret < 0 {
             ax_println!("sys_mmap: read file failed: {}", ret);
