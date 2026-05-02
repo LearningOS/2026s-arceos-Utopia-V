@@ -139,11 +139,15 @@ fn sys_mmap(
     fd: i32,
     offset: isize,
 ) -> isize {
+    ax_println!("sys_mmap: addr={:?}, len={:#x}, prot={:#x}, flags={:#x}, fd={}",
+        addr, length, prot, flags, fd);
+
     let mmap_prot = MmapProt::from_bits(prot).unwrap_or(MmapProt::PROT_READ);
     let mmap_flags = MmapFlags::from_bits(flags).unwrap_or(MmapFlags::MAP_ANONYMOUS | MmapFlags::MAP_PRIVATE);
     let map_flags: MappingFlags = mmap_prot.into();
 
     let is_anonymous = mmap_flags.contains(MmapFlags::MAP_ANONYMOUS);
+    ax_println!("sys_mmap: is_anon={}, mmap_flags={:?}", is_anonymous, mmap_flags);
 
     let curr = current();
     let aspace = &curr.task_ext().aspace;
@@ -161,6 +165,8 @@ fn sys_mmap(
         axhal::mem::VirtAddr::from_usize(addr as usize)
     };
 
+    ax_println!("sys_mmap: vaddr={:#x}, len_aligned={:#x}", vaddr.as_usize(), len_aligned);
+
     if let Err(e) = aspace.map_alloc(vaddr, len_aligned, map_flags, true) {
         ax_println!("sys_mmap: map_alloc failed: {:?}", e);
         return -LinuxError::ENOMEM.code() as isize;
@@ -170,13 +176,16 @@ fn sys_mmap(
     if !is_anonymous && fd >= 0 {
         let buf = vaddr.as_usize() as *mut core::ffi::c_void;
         let ret = api::sys_read(fd, buf, length);
+        ax_println!("sys_mmap: sys_read(fd={}) returned {}", fd, ret);
         if ret < 0 {
             ax_println!("sys_mmap: read file failed: {}", ret);
             return -LinuxError::EIO.code() as isize;
         }
     }
 
-    vaddr.as_usize() as isize
+    let result = vaddr.as_usize() as isize;
+    ax_println!("sys_mmap: returning {:#x}", result);
+    result
 }
 
 fn sys_openat(dfd: c_int, fname: *const c_char, flags: c_int, mode: api::ctypes::mode_t) -> isize {
