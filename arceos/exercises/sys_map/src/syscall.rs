@@ -155,8 +155,8 @@ fn sys_mmap(
     let vaddr = if mmap_flags.contains(MmapFlags::MAP_FIXED) {
         axhal::mem::VirtAddr::from_usize(addr as usize)
     } else if addr as usize == 0 {
-        // Pick from end of address space (matches stack allocation pattern)
-        aspace.end() - len_aligned
+        // Use a fixed address below the stack area to avoid overlap
+        axhal::mem::VirtAddr::from_usize(0x2000_0000)
     } else {
         axhal::mem::VirtAddr::from_usize(addr as usize)
     };

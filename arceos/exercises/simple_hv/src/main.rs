@@ -29,7 +29,9 @@ use crate::regs::GprIndex;
 use crate::regs::GprIndex::{A0, A1};
 use axhal::paging::MappingFlags;
 use axhal::mem::phys_to_virt;
-use axtask::TaskExtRef;
+use axsync::Mutex;
+use alloc::sync::Arc;
+use axmm::AddrSpace;
 
 const VM_ENTRY: usize = 0x8020_0000;
 
@@ -53,8 +55,10 @@ fn main() {
     let ept_root = uspace.page_table_root();
     prepare_vm_pgtable(ept_root);
 
+    let aspace = Arc::new(Mutex::new(uspace));
+
     // Kick off vm and wait for it to exit.
-    while !run_guest(&mut ctx) {
+    while !run_guest(&mut ctx, &aspace) {
     }
 
     panic!("Hypervisor ok!");
@@ -71,16 +75,16 @@ fn prepare_vm_pgtable(ept_root: PhysAddr) {
     }
 }
 
-fn run_guest(ctx: &mut VmCpuRegisters) -> bool {
+fn run_guest(ctx: &mut VmCpuRegisters, aspace: &Arc<Mutex<AddrSpace>>) -> bool {
     unsafe {
         _run_guest(ctx);
     }
 
-    vmexit_handler(ctx)
+    vmexit_handler(ctx, aspace)
 }
 
 #[allow(unreachable_code)]
-fn vmexit_handler(ctx: &mut VmCpuRegisters) -> bool {
+fn vmexit_handler(ctx: &mut VmCpuRegisters, aspace: &Arc<Mutex<AddrSpace>>) -> bool {
     use scause::{Exception, Trap};
 
     let scause = scause::read();
@@ -130,8 +134,6 @@ fn vmexit_handler(ctx: &mut VmCpuRegisters) -> bool {
 
             // Map a page for the faulting address and write expected data
             let fault_page = fault_addr & !0xFFF;
-            let curr = axtask::current();
-            let aspace = &curr.task_ext().aspace;
             let mut aspace = aspace.lock();
             aspace.map_alloc(
                 fault_page.into(),
