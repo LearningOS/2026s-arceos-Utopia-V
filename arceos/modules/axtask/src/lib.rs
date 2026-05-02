@@ -27,7 +27,6 @@
 
 #![cfg_attr(not(test), no_std)]
 #![feature(doc_cfg)]
-#![feature(doc_auto_cfg)]
 #![feature(linkage)]
 #![feature(const_mut_refs)]
 #![feature(const_ptr_is_null)]

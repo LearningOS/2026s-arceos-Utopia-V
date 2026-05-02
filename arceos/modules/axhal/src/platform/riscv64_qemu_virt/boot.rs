@@ -22,14 +22,14 @@ unsafe fn init_mmu() {
 }
 
 /// The earliest entry point for the primary CPU.
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
-unsafe extern "C" fn _start() -> ! {
+extern "C" fn _start() -> ! {
     // PC = 0x8020_0000
     // a0 = hartid
     // a1 = dtb
-    core::arch::asm!("
+    core::arch::naked_asm!("
         mv      s0, a0                  // save hartid
         mv      s1, a1                  // save DTB pointer
         la      sp, {boot_stack}
@@ -54,19 +54,18 @@ unsafe extern "C" fn _start() -> ! {
         init_boot_page_table = sym init_boot_page_table,
         init_mmu = sym init_mmu,
         entry = sym super::rust_entry,
-        options(noreturn),
     )
 }
 
 /// The earliest entry point for secondary CPUs.
 #[cfg(feature = "smp")]
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
-unsafe extern "C" fn _start_secondary() -> ! {
+extern "C" fn _start_secondary() -> ! {
     // a0 = hartid
     // a1 = SP
-    core::arch::asm!("
+    core::arch::naked_asm!("
         mv      s0, a0                  // save hartid
         mv      sp, a1                  // set SP
 
@@ -84,6 +83,5 @@ unsafe extern "C" fn _start_secondary() -> ! {
         phys_virt_offset = const PHYS_VIRT_OFFSET,
         init_mmu = sym init_mmu,
         entry = sym super::rust_entry_secondary,
-        options(noreturn),
     )
 }

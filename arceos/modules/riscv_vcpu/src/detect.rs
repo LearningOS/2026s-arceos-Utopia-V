@@ -145,9 +145,9 @@ struct TrapFrame {
 // This function should not be used in conventional trap handling,
 // as it does not preserve a special trap stack, and it's designed to
 // handle exceptions only rather than interrupts.
-#[naked]
-unsafe extern "C" fn on_detect_trap() -> ! {
-    asm!(
+#[unsafe(naked)]
+extern "C" fn on_detect_trap() -> ! {
+    core::arch::naked_asm!(
         ".p2align 2",
         "addi   sp, sp, -8*21",
         "sd     ra, 0*8(sp)",
@@ -205,6 +205,5 @@ unsafe extern "C" fn on_detect_trap() -> ! {
         "addi   sp, sp, 8*21",
         "sret",
         rust_detect_trap = sym rust_detect_trap,
-        options(noreturn),
     )
 }

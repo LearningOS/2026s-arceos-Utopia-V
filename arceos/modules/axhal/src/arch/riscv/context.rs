@@ -262,17 +262,44 @@ impl UspaceContext {
         let kernel_trap_addr = kstack_top.as_usize() - core::mem::size_of::<TrapFrame>();
         asm!("
             mv      sp, {tf}
-            
-            STR     gp, {kernel_trap_addr}, 2
-            LDR     gp, sp, 2
 
-            STR     tp, {kernel_trap_addr}, 3
-            LDR     tp, sp, 3
+            sd      gp, 16({kernel_trap_addr})
+            ld      gp, 16(sp)
 
-            LDR     t0, sp, 32
+            sd      tp, 24({kernel_trap_addr})
+            ld      tp, 24(sp)
+
+            ld      t0, 256(sp)
             csrw    sstatus, t0
-            POP_GENERAL_REGS
-            LDR     sp, sp, 1
+            ld      ra, 0(sp)
+            ld      t0, 32(sp)
+            ld      t1, 40(sp)
+            ld      t2, 48(sp)
+            ld      s0, 56(sp)
+            ld      s1, 64(sp)
+            ld      a0, 72(sp)
+            ld      a1, 80(sp)
+            ld      a2, 88(sp)
+            ld      a3, 96(sp)
+            ld      a4, 104(sp)
+            ld      a5, 112(sp)
+            ld      a6, 120(sp)
+            ld      a7, 128(sp)
+            ld      s2, 136(sp)
+            ld      s3, 144(sp)
+            ld      s4, 152(sp)
+            ld      s5, 160(sp)
+            ld      s6, 168(sp)
+            ld      s7, 176(sp)
+            ld      s8, 184(sp)
+            ld      s9, 192(sp)
+            ld      s10, 200(sp)
+            ld      s11, 208(sp)
+            ld      t3, 216(sp)
+            ld      t4, 224(sp)
+            ld      t5, 232(sp)
+            ld      t6, 240(sp)
+            ld      sp, 8(sp)
             sret",
             tf = in(reg) &(self.0),
             kernel_trap_addr = in(reg) kernel_trap_addr,
@@ -281,43 +308,42 @@ impl UspaceContext {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn context_switch(_current_task: &mut TaskContext, _next_task: &TaskContext) {
-    asm!(
+    core::arch::naked_asm!(
         "
         // save old context (callee-saved registers)
-        STR     ra, a0, 0
-        STR     sp, a0, 1
-        STR     s0, a0, 2
-        STR     s1, a0, 3
-        STR     s2, a0, 4
-        STR     s3, a0, 5
-        STR     s4, a0, 6
-        STR     s5, a0, 7
-        STR     s6, a0, 8
-        STR     s7, a0, 9
-        STR     s8, a0, 10
-        STR     s9, a0, 11
-        STR     s10, a0, 12
-        STR     s11, a0, 13
+        sd      ra, 0(a0)
+        sd      sp, 8(a0)
+        sd      s0, 16(a0)
+        sd      s1, 24(a0)
+        sd      s2, 32(a0)
+        sd      s3, 40(a0)
+        sd      s4, 48(a0)
+        sd      s5, 56(a0)
+        sd      s6, 64(a0)
+        sd      s7, 72(a0)
+        sd      s8, 80(a0)
+        sd      s9, 88(a0)
+        sd      s10, 96(a0)
+        sd      s11, 104(a0)
 
         // restore new context
-        LDR     s11, a1, 13
-        LDR     s10, a1, 12
-        LDR     s9, a1, 11
-        LDR     s8, a1, 10
-        LDR     s7, a1, 9
-        LDR     s6, a1, 8
-        LDR     s5, a1, 7
-        LDR     s4, a1, 6
-        LDR     s3, a1, 5
-        LDR     s2, a1, 4
-        LDR     s1, a1, 3
-        LDR     s0, a1, 2
-        LDR     sp, a1, 1
-        LDR     ra, a1, 0
+        ld      s11, 104(a1)
+        ld      s10, 96(a1)
+        ld      s9, 88(a1)
+        ld      s8, 80(a1)
+        ld      s7, 72(a1)
+        ld      s6, 64(a1)
+        ld      s5, 56(a1)
+        ld      s4, 48(a1)
+        ld      s3, 40(a1)
+        ld      s2, 32(a1)
+        ld      s1, 24(a1)
+        ld      s0, 16(a1)
+        ld      sp, 8(a1)
+        ld      ra, 0(a1)
 
         ret",
-        options(noreturn),
     )
 }
