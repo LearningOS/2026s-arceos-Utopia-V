@@ -131,16 +131,52 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
     ret
 }
 
-#[allow(unused_variables)]
 fn sys_mmap(
     addr: *mut usize,
     length: usize,
     prot: i32,
     flags: i32,
     fd: i32,
-    _offset: isize,
+    offset: isize,
 ) -> isize {
-    unimplemented!("no sys_mmap!");
+    let mmap_prot = MmapProt::from_bits(prot).unwrap_or(MmapProt::PROT_READ);
+    let mmap_flags = MmapFlags::from_bits(flags).unwrap_or(MmapFlags::MAP_ANONYMOUS | MmapFlags::MAP_PRIVATE);
+    let map_flags: MappingFlags = mmap_prot.into();
+
+    let is_anonymous = mmap_flags.contains(MmapFlags::MAP_ANONYMOUS);
+
+    let curr = current();
+    let aspace = &curr.task_ext().aspace;
+    let mut aspace = aspace.lock();
+
+    let page_size = 0x1000;
+    let len_aligned = (length + page_size - 1) & !(page_size - 1);
+
+    let vaddr = if mmap_flags.contains(MmapFlags::MAP_FIXED) {
+        axhal::mem::VirtAddr::from_usize(addr as usize)
+    } else if addr as usize == 0 {
+        // Pick from end of address space (matches stack allocation pattern)
+        aspace.end() - len_aligned
+    } else {
+        axhal::mem::VirtAddr::from_usize(addr as usize)
+    };
+
+    if let Err(e) = aspace.map_alloc(vaddr, len_aligned, map_flags, true) {
+        ax_println!("sys_mmap: map_alloc failed: {:?}", e);
+        return -LinuxError::ENOMEM.code() as isize;
+    }
+
+    // If file-backed, read file content into the mapped region
+    if !is_anonymous && fd >= 0 {
+        let buf = vaddr.as_usize() as *mut core::ffi::c_void;
+        let ret = api::sys_read(fd, buf, length);
+        if ret < 0 {
+            ax_println!("sys_mmap: read file failed: {}", ret);
+            return -LinuxError::EIO.code() as isize;
+        }
+    }
+
+    vaddr.as_usize() as isize
 }
 
 fn sys_openat(dfd: c_int, fname: *const c_char, flags: c_int, mode: api::ctypes::mode_t) -> isize {
