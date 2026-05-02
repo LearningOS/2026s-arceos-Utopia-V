@@ -165,6 +165,32 @@ impl VfsNodeOps for DirNode {
         }
     }
 
+    fn rename(&self, src_path: &str, dst_path: &str) -> VfsResult {
+        log::debug!("rename at ramfs: {} -> {}", src_path, dst_path);
+        let (src_name, rest) = split_path(src_path);
+        if let Some(rest) = rest {
+            match src_name {
+                "" | "." => self.rename(rest, dst_path),
+                ".." => self.parent().ok_or(VfsError::NotFound)?.rename(rest, dst_path),
+                _ => {
+                    let subdir = self
+                        .children
+                        .read()
+                        .get(src_name)
+                        .ok_or(VfsError::NotFound)?
+                        .clone();
+                    subdir.rename(rest, dst_path)
+                }
+            }
+        } else {
+            let dst_name = dst_path.rsplit('/').next().unwrap_or(dst_path);
+            let mut children = self.children.write();
+            let node = children.remove(src_name).ok_or(VfsError::NotFound)?;
+            children.insert(dst_name.into(), node);
+            Ok(())
+        }
+    }
+
     axfs_vfs::impl_vfs_dir_default! {}
 }
 
