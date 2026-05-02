@@ -95,6 +95,7 @@ axfs_ramfs = { path = "./axfs_ramfs" }
 [patch.crates-io]
 kernel_guard = { path = "../crates/kernel_guard"}
 axio = { path = "../crates/axio" }
+flatten_objects = { path = "../crates/flatten_objects" }
 
 [patch.'https://github.com/arceos-org/axdriver_crates.git']
 axdriver_base = { path = "../crates/axdriver_crates/axdriver_base" }
