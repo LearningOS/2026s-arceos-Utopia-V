@@ -93,7 +93,15 @@ elf = { path = "modules/elf" }
 axfs_ramfs = { path = "./axfs_ramfs" }
 
 [patch.crates-io]
-kernel_guard = { path = "../crates/kernel_guard"} 
+kernel_guard = { path = "../crates/kernel_guard"}
+
+[patch.'https://github.com/arceos-org/axdriver_crates.git']
+axdriver_base = { path = "../crates/axdriver_crates/axdriver_base" }
+axdriver_block = { path = "../crates/axdriver_crates/axdriver_block" }
+axdriver_net = { path = "../crates/axdriver_crates/axdriver_net" }
+axdriver_display = { path = "../crates/axdriver_crates/axdriver_display" }
+axdriver_pci = { path = "../crates/axdriver_crates/axdriver_pci" }
+axdriver_virtio = { path = "../crates/axdriver_crates/axdriver_virtio" }
 
 [profile.release]
 lto = true

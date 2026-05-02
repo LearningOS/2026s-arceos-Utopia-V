@@ -1,0 +1,22 @@
+[package]
+name = "axdriver_block"
+edition = "2021"
+description = "Common traits and types for block storage drivers"
+documentation = "https://arceos-org.github.io/axdriver_crates/axdriver_block"
+keywords = ["arceos", "dirver", "blk"]
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[features]
+ramdisk = []
+bcm2835-sdhci = ["dep:bcm2835-sdhci"]
+default = []
+
+[dependencies]
+log = "0.4"
+axdriver_base = { workspace = true }
+bcm2835-sdhci = { git = "https://github.com/lhw2002426/bcm2835-sdhci.git", rev = "e974f16", optional = true }
